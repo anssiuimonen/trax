@@ -333,6 +333,7 @@ class RLTask:
     self._timestep_to_np = ts
 
   def init_from_file(self, file_name):
+    """Initialize this task from file."""
     with tf.io.gfile.GFile(file_name, 'rb') as f:
       with gzip.GzipFile(fileobj=f) as gzipf:
         dictionary = pickle.load(gzipf)
@@ -341,12 +342,17 @@ class RLTask:
     self._gamma = dictionary['gamma']
 
   def save_to_file(self, file_name):
+    """Save this task to file."""
     dictionary = {'trajectories': self._trajectories,
                   'max_steps': self._max_steps,
                   'gamma': self._gamma}
-    with tf.io.gfile.GFile(file_name, 'wb') as f:
+    # Pickle to tmp file and overwrite to prevent writing partial files.
+    tmp_file_name = file_name + '._tmp_'
+    with tf.io.gfile.GFile(tmp_file_name, 'wb') as f:
       with gzip.GzipFile(fileobj=f) as gzipf:
         pickle.dump(dictionary, gzipf)
+    # Moving a file is much less error-prone than pickling.
+    tf.io.gfile.rename(tmp_file_name, file_name, overwrite=True)
 
   def play(self, policy):
     """Play an episode in env taking actions according to the given policy."""

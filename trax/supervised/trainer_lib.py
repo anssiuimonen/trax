@@ -440,8 +440,12 @@ class Trainer(object):
               jaxboard.markdownify_operative_config_str(config_str))
 
   def _save_state_dict(self, trainer_state_dict, weights_file):
-    with tf.io.gfile.GFile(weights_file, 'wb') as f:
+    # Pickle to tmp file and overwrite to prevent writing partial files.
+    tmp_weights_file = weights_file + '._tmp_'
+    with tf.io.gfile.GFile(tmp_weights_file, 'wb') as f:
       pickle.dump(trainer_state_dict, f)
+    # Moving a file is much less error-prone than pickling large files.
+    tf.io.gfile.rename(tmp_weights_file, weights_file, overwrite=True)
     log('Model saved to %s' % weights_file, stdout=False)
 
   def save_state(self, keep, prefix='model'):
